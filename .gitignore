@@ -1,0 +1,16 @@
+# виртуальное окружение
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
