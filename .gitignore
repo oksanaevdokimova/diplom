@@ -14,3 +14,6 @@ __pycache__/
 # IDE
 .idea/
 .vscode/
+
+# Локальные настройки подключения
+config/local.json
