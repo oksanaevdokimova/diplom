@@ -1,0 +1,19 @@
+{
+  "active_transport": "usb",
+  "timeout_seconds": 60,
+  "usb": {
+    "port": "COM3",
+    "baudrate": 115200
+  },
+  "wifi": {
+    "host": "192.168.1.10",
+    "port": 5000
+  },
+  "gsm": {
+    "mode": "mqtt",
+    "broker_host": "broker.example.com",
+    "broker_port": 1883,
+    "topic_command": "robot/command",
+    "topic_messages": "robot/messages"
+  }
+}
