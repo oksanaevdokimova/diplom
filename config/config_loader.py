@@ -10,10 +10,6 @@ from .config_validator import validate_config # Импорт проверки с
 _CONFIG_DIR = Path(__file__).resolve().parent # Каталог, где лежат конфигурационные файлы
 _DEFAULT_PATH = _CONFIG_DIR / "default_config.json" # Путь к образцу конфигурации (default_config.json)
 
-"""Путь к встроенному образцу конфигурации (default_config.json)"""
-def default_config_path() -> Path: # Функция без аргументов, возвращает Path
-    return _DEFAULT_PATH # Путь к образцу конфигурации (default_config.json)
-
 """Путь к конфигурации оператора (config.json)"""
 def user_config_path() -> Path: # Функция без аргументов, возвращает Path
     return _CONFIG_DIR / "config.json" # Путь к конфигурации оператора (config.json) в каталоге config
