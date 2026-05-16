@@ -1,0 +1,189 @@
+/* Общие стили приложения */
+
+QWidget {
+    color: #1b1b1b;
+    font-size: 15px;
+    font-weight: normal;
+}
+
+QFrame#panel {
+    background-color: #fbfbfd;
+    border: 1px solid #cecece;
+    border-radius: 12px;
+    padding: 10px;
+}
+
+QLabel#panelTitle {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+QLabel#fieldLabel {
+    font-weight: 500;
+}
+
+QLabel#fieldError {
+    color: #d30000;
+    font-size: 10px;
+}
+
+QLineEdit {
+    background-color: #ffffff;
+    border: 1px solid #cecece;
+    border-radius: 8px;
+    padding: 6px;
+    text-align: left;
+}
+
+QLineEdit:hover {
+    border: 1px solid #5294ff;
+}
+
+QLineEdit:focus {
+    border: 1px solid #5294ff;
+}
+
+QLineEdit[error="true"] {
+    border: 2px solid #d30000;
+}
+
+QComboBox {
+    background-color: #ffffff;
+    border: 1px solid #cecece;
+    border-radius: 8px;
+    padding: 6px;
+    text-align: left;
+}
+
+QComboBox:hover,
+QComboBox:focus,
+QComboBox:on {
+    border: 1px solid #5294ff;
+}
+
+QComboBox::drop-down {
+    subcontrol-position: center right;
+    width: 24px;
+    border: none;
+}
+
+QComboBox::down-arrow {
+    image: url(%CHEVRON_ICON%);
+}
+
+QComboBox QAbstractItemView {
+    background-color: #ffffff;
+    border: 1px solid #dcdcdc;
+    border-radius: 0px;
+    padding: 0px;
+    outline: 0;
+    selection-background-color: #e5eefc;
+    selection-color: #1b1b1b;
+}
+
+QComboBox QAbstractItemView::item {
+    padding: 8px 10px;
+    border: none;
+    border-radius: 0px;
+    outline: none;
+    color: #1b1b1b;
+    background-color: #ffffff;
+}
+
+QComboBox QAbstractItemView::item:hover {
+    background-color: #e5eefc;
+    border: none;
+    outline: none;
+}
+
+QComboBox QAbstractItemView::item:selected {
+    background-color: #e5eefc;
+    border: none;
+    outline: none;
+    color: #1b1b1b;
+}
+
+QComboBoxPrivateContainer {
+    background-color: #ffffff;
+    border: none;
+    padding: 0px;
+    margin: 0px;
+}
+
+QPushButton {
+    font-weight: bold;
+    text-align: center;
+    border-radius: 8px;
+    padding: 8px 20px;
+    min-width: 130px;
+}
+
+QPushButton#connectButton {
+    background-color: #e5eefc;
+}
+
+QPushButton#connectButton:hover {
+    background-color: #e5eefc;
+    border: 1px solid #5294ff;
+}
+
+QPushButton#connectButton:disabled {
+    background-color: #ffffff;
+    border: 1px solid #cecece;
+    color: #5b5b5b;
+}
+
+QPushButton#disconnectButton {
+    background-color: #fedddb;
+}
+
+QPushButton#disconnectButton:hover {
+    background-color: #fedddb;
+    border: 1px solid #d30000;
+}
+
+QPushButton#disconnectButton:disabled {
+    background-color: #ffffff;
+    border: 1px solid #cecece;
+    color: 5b5b5b;
+}
+
+QFrame#connectionStatus {
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 8px 20px;
+    min-width: 130px;
+}
+
+QFrame#connectionStatus[connected="false"] {
+    background-color: #ffffff;
+    border: 1px solid #cecece;
+}
+
+QFrame#connectionStatus[connected="true"] {
+    background-color: #e0eedb;
+    border: 1px solid #2b8f00;
+}
+
+QLabel#statusLabel {
+    background: transparent;
+    font-weight: bold;
+}
+
+QLabel#statusDotConnected {
+    background-color: #2b8f00;
+    border-radius: 6px;
+    min-width: 12px;
+    max-width: 12px;
+    min-height: 12px;
+    max-height: 12px;
+}
+
+QLabel#statusDotDisconnected {
+    background-color: #cecece;
+    border-radius: 6px;
+    min-width: 12px;
+    max-width: 12px;
+    min-height: 12px;
+    max-height: 12px;
+}
