@@ -73,7 +73,6 @@ QComboBox::down-arrow {
 
 QComboBox QAbstractItemView {
     background-color: #ffffff;
-    border: 1px solid #dcdcdc;
     border-radius: 0px;
     padding: 0px;
     outline: 0;
@@ -145,7 +144,7 @@ QPushButton#disconnectButton:hover {
 QPushButton#disconnectButton:disabled {
     background-color: #ffffff;
     border: 1px solid #cecece;
-    color: 5b5b5b;
+    color: #5b5b5b;
 }
 
 QFrame#connectionStatus {
@@ -186,4 +185,119 @@ QLabel#statusDotDisconnected {
     max-width: 12px;
     min-height: 12px;
     max-height: 12px;
+}
+
+QToolButton#iconButton {
+    background-color: #e5eefc;
+    border-radius: 8px;
+    min-width: 28px;
+    max-width: 28px;
+    min-height: 28px;
+    max-height: 28px;
+}
+
+QToolButton#iconButton:hover {
+    background-color: #e5eefc;
+    border: 1px solid #5294ff;
+    border-radius: 8px;
+
+}
+
+QToolButton#iconButton:disabled {
+    background-color: #ffffff;
+    border: 1px solid #cecece;
+}
+
+QListWidget#actuatorList {
+    background-color: #ffffff;
+    border: 1px solid #cecece;
+    border-radius: 8px;
+}
+
+QListWidget#actuatorList::item {
+    background-color: #ffffff;
+    border: 1px solid #cecece;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 3px 2px;
+    min-height: 36px;
+}
+
+QListWidget#actuatorList::item:hover {
+    background-color: #e5eefc;
+    border: 1px solid #5294ff;
+    color: #1b1b1b;
+}
+
+QListWidget#actuatorList::item:selected {
+    background-color: #e5eefc;
+    border: 1px solid #5294ff;
+    color: #1b1b1b;
+}
+
+QListWidget#actuatorList::item:selected:!active {
+    background-color: #e5eefc;
+    border: 1px solid #5294ff;
+    color: #1b1b1b;
+}
+
+QPushButton#sendCommandButton {
+    background-color: #e0eedb;
+}
+
+QPushButton#sendCommandButton:hover:enabled {
+    background-color: #e0eedb;
+    border: 1px solid #2b8f00;
+}
+
+QPushButton#stopButton {
+    background-color: #fedddb;
+}
+
+QPushButton#stopButton:hover:enabled {
+    background-color: #fedddb;
+    border: 1px solid #d30000;
+}
+
+QFrame#nestedPanel {
+    background-color: #ffffff;
+    border: 1px solid #e4e4e4;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+QTableWidget#dataTable {
+    background-color: #ffffff;
+    border: 1px solid #e4e4e4;
+    border-radius: 8px;
+    gridline-color: #e4e4e4;
+}
+
+QPushButton#clearLogButton {
+    background-color: #fedddb;
+    min-width: 110px;
+}
+
+QPushButton#clearLogButton:hover:enabled {
+    background-color: #fedddb;
+    border: 1px solid #d30000;
+}
+
+QPushButton#saveLogButton {
+    background-color: #e5eefc;
+    min-width: 160px;
+}
+
+QPushButton#saveLogButton:hover:enabled {
+    background-color: #e5eefc;
+    border: 1px solid #5294ff;
+}
+
+QHeaderView::section {
+    background-color: #f5f5f7;
+    border: none;
+    border-bottom: 1px solid #e4e4e4;
+    padding: 8px;
+    font-weight: 600;
+    text-align: left;
 }

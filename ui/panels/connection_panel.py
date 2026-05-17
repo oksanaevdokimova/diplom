@@ -1,4 +1,4 @@
-"""Панель подключения к контроллеру."""
+"""Панель подключения к контроллеру"""
 
 from __future__ import annotations
 from copy import deepcopy
@@ -57,6 +57,7 @@ class FieldGroup(QWidget):
 """Панель подключения"""
 class ConnectionPanel(QFrame):
     config_saved = Signal(dict)
+    connection_changed = Signal(bool)
     PANEL_HEIGHT = 120
     _DYNAMIC_FIELD_ATTRS = ( # Список атрибутов динамических полей
         "usb_port_edit",
@@ -510,6 +511,7 @@ class ConnectionPanel(QFrame):
         self._apply_status_frame_style(connected=True) # Применение стиля для рамки статуса
         self.connect_button.setEnabled(False) # Отключение кнопки «Подключить»
         self.disconnect_button.setEnabled(True) # Включение кнопки «Отключить»  
+        self.connection_changed.emit(True) # Сигнал о том, что соединение установлено
 
     """Установка статуса «Отключено»"""
     def _set_disconnected_status(self) -> None:
@@ -518,6 +520,7 @@ class ConnectionPanel(QFrame):
         self._apply_status_frame_style(connected=False) # Применение стиля для рамки статуса
         self.connect_button.setEnabled(True) # Включение кнопки «Подключить»
         self.disconnect_button.setEnabled(False) # Отключение кнопки «Отключить»
+        self.connection_changed.emit(False) # Сигнал о том, что соединение разорвано
 
     """Применение стиля для точки статуса"""
     def _apply_status_dot_style(self, object_name: str) -> None:
