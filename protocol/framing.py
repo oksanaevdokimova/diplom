@@ -24,9 +24,9 @@ def parse_line(line: str, *, validate: bool = True) -> AppMessage:
         validate_message(message)
     return message # Возвращение сообщения
 
-"""Класс для упаковки сообщений: один JSON-объект на строку"""
+"""Накопление входящих байт до полных строк JSON (разделитель \\n)"""
 class LineFramer:
-    """Инициализация буфера"""
+    """Конструктор буфера построчного разбора"""
     def __init__(self) -> None:
         self._buffer = bytearray() # Буфер для хранения входящих байт
 

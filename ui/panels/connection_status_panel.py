@@ -1,4 +1,4 @@
-"""Состояние связи с контроллером."""
+"""Панель состояния связи с контроллером"""
 
 from __future__ import annotations
 from PySide6.QtCore import Qt
@@ -23,7 +23,7 @@ class ConnectionStatusPanel(QFrame):
     def _build_ui(self) -> None:
         """Общие настройки для панели"""
         self.setObjectName("panel")
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed) # Компактная по высоте панель статуса
         main_layout = QVBoxLayout(self) # Вертикальная раскладка для панели
         main_layout.setContentsMargins(0, 0, 0, 0) # Чтобы не было лишних отступов
         main_layout.setSpacing(10) # Отступ между элементами по вертикали
@@ -35,7 +35,7 @@ class ConnectionStatusPanel(QFrame):
         main_layout.addLayout(header_container)
         """Тело панели"""
         body_container = QVBoxLayout()
-        body_container.setSpacing(10)
+        body_container.setSpacing(10) # Расстояние между строками «канал», «статус», «последнее сообщение»
         body_container.addLayout(self._field_row("Канал:", self._make_value_label("channel")))
         body_container.addLayout(self._status_row())
         self.last_message_label = self._make_value_label("last_message")
@@ -44,14 +44,14 @@ class ConnectionStatusPanel(QFrame):
         main_layout.addLayout(body_container)
 
     """Создание метки значения"""
-    def _make_value_label(self, key: str, text: str = "—") -> QLabel:
+    def _make_value_label(self, key: str, text: str = "") -> QLabel:
         label = QLabel(text)
-        self._value_labels[key] = label
+        self._value_labels[key] = label # Регистрация для возможных будущих обращений по ключу
         if key == "channel":
-            self.channel_label = label
+            self.channel_label = label # Удобная ссылка на метку канала для set_channel
         return label
 
-    """Создание строки поля"""
+    """Строка «подпись — значение» с растяжкой справа"""
     def _field_row(self, caption: str, value: QWidget) -> QHBoxLayout:
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
@@ -60,10 +60,10 @@ class ConnectionStatusPanel(QFrame):
         caption_label.setObjectName("fieldLabel")
         row.addWidget(caption_label)
         row.addWidget(value)
-        row.addStretch(1)
+        row.addStretch(1) # Прижать подпись и значение к левому краю
         return row
 
-    """Создание строки статуса"""
+    """Строка статуса связи с цветной точкой"""
     def _status_row(self) -> QHBoxLayout:
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
@@ -79,9 +79,9 @@ class ConnectionStatusPanel(QFrame):
         status_layout.setSpacing(8)
         """Точка статуса"""
         self.status_dot = QLabel()
-        self.status_dot.setFixedSize(10, 10)
+        self.status_dot.setFixedSize(10, 10) # Размер цветной точки для QSS
         self.status_dot.setObjectName("statusDotDisconnected")
-        self.status_dot.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.status_dot.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True) # Чтобы работал фон у QLabel
         """Текст статуса"""
         self.status_label = QLabel("Отключено")
         self.status_label.setObjectName("dataValue")
@@ -91,3 +91,24 @@ class ConnectionStatusPanel(QFrame):
         row.addWidget(status_value)
         row.addStretch(1)
         return row
+
+    """Установить текст описания активного канала"""
+    def set_channel(self, text: str) -> None:
+        self.channel_label.setText(text)
+
+    """Обновить подпись статуса и стиль точки (подключено / нет)"""
+    def set_link_status(self, *, connected: bool, text: str) -> None:
+        self.status_label.setText(text)
+        self._apply_status_dot_style(
+            "statusDotConnected" if connected else "statusDotDisconnected",
+        )
+
+    """Текст или время последнего корректного входящего сообщения"""
+    def set_last_message(self, text: str) -> None:
+        self.last_message_label.setText(text)
+
+    """Применить имя объекта точке для пересчёта стилей Qt"""
+    def _apply_status_dot_style(self, object_name: str) -> None:
+        self.status_dot.setObjectName(object_name)
+        self.status_dot.style().unpolish(self.status_dot)
+        self.status_dot.style().polish(self.status_dot)

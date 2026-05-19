@@ -1,4 +1,4 @@
-"""ТОЧКА ВХОДА: загрузка конфигурации, запуск главного окна"""
+"""Точка входа приложения"""
 
 from __future__ import annotations # Чтобы можно было писать аннотации вроде dict[str, Any] без кавычек
 import sys # Доступ к sys.argv и к sys.exit для кода выхода процесса
@@ -9,7 +9,7 @@ from ui.main_window import MainWindow # Главное окно оператор
 
 _STYLES_DIR = Path(__file__).resolve().parent.parent / "ui" / "styles"
 
-"""Запуск приложения: конфигурация, цикл событий Qt"""
+"""Запуск приложения: загрузка конфигурации и цикл событий Qt"""
 def main() -> None: # Точка входа
     config = load_config() # Читаем и проверяем конфигурацию до создания окна
     app = QApplication(sys.argv) # Один объект приложения Qt на весь процесс; sys.argv — параметры ОС

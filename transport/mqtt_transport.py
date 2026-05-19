@@ -1,8 +1,10 @@
 """GSM MQTT-транспорт через paho-mqtt"""
 
 from __future__ import annotations # Чтобы можно было писать аннотации вроде dict[str, Any] без кавычек
+import socket
 from typing import Any # Универсальный тип для значений в словаре конфигурации
-from PySide6.QtCore import QThread, Signal # Мьютекс для синхронизации доступа к данным, поток, сигналы
+from PySide6.QtCore import Q_ARG, QMetaObject, Qt, QThread, Signal, Slot
+from core import diagnostic_messages as diag_msg
 from transport.base import BaseTransport
 try: # Пытаемся импортировать модуль paho-mqtt
     import paho.mqtt.client as mqtt
@@ -15,54 +17,82 @@ class _MqttConnectWorker(QThread):
     failed = Signal(str) # Сигнал ошибки подключения
 
     """Подключение к MQTT-брокеру"""
-    def __init__(self, host: str, port: int, topic_messages: str, parent: Any = None) -> None:
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        topic_messages: str,
+        connect_timeout: float = 60.0,
+        parent: Any = None,
+    ) -> None:
         super().__init__(parent)
         self._host = host
         self._port = port
         self._topic_messages = topic_messages
+        self._connect_timeout = max(1.0, float(connect_timeout))
 
     """Запуск потока"""
     def run(self) -> None:
         if mqtt is None: # Если модуль paho-mqtt не установлен, то вызываем сигнал ошибки подключения
-            self.failed.emit("Модуль paho-mqtt не установлен")
+            self.failed.emit(diag_msg.transport_module_missing("paho-mqtt", "MqttTransport"))
             return
-        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2) # Создаем клиента MQTT
+        keepalive = max(10, int(self._connect_timeout))
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        prev_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(self._connect_timeout)
         try:
-            client.connect(self._host, self._port, keepalive=60) # Подключаемся к MQTT-брокеру
+            client.connect(self._host, self._port, keepalive=keepalive)
             client.loop_start() # Запускаем цикл обработки событий MQTT
             result, _ = client.subscribe(self._topic_messages) # Подписываемся на топик сообщений
             if result != mqtt.MQTT_ERR_SUCCESS: # Если ошибка, то вызываем сигнал ошибки подключения
                 client.loop_stop() # Останавливаем цикл обработки событий MQTT
                 client.disconnect() # Отключаемся от MQTT-брокера
-                self.failed.emit("Не удалось подписаться на топик сообщений")
+                self.failed.emit("subscribe to topic failed")
                 return
         except Exception as exc: # Если ошибка, то вызываем сигнал ошибки подключения
             self.failed.emit(str(exc))
             return
+        finally:
+            socket.setdefaulttimeout(prev_timeout)
         self.succeeded.emit(client) # Сигнал успешного подключения
 
 """MQTT-транспорт"""
 class MqttTransport(BaseTransport):
     """Инициализация MQTT-транспорта"""
-    def __init__(self, broker_host: str, broker_port: int, topic_command: str, topic_messages: str, parent: Any = None) -> None:
+    def __init__(
+        self,
+        broker_host: str,
+        broker_port: int,
+        topic_command: str,
+        topic_messages: str,
+        connect_timeout: float = 60.0,
+        parent: Any = None,
+    ) -> None:
         super().__init__(parent)
         self._broker_host = broker_host
         self._broker_port = broker_port
         self._topic_command = topic_command
         self._topic_messages = topic_messages
+        self._connect_timeout = connect_timeout
         self._client: Any = None
         self._connect_worker: _MqttConnectWorker | None = None
 
     """Подключение к MQTT-брокеру"""
     def connect(self) -> None:
         if mqtt is None: # Если модуль paho-mqtt не установлен, то вызываем сигнал ошибки подключения
-            self.error.emit("Модуль paho-mqtt не установлен")
+            self.error.emit(diag_msg.transport_module_missing("paho-mqtt", "MqttTransport"))
             return
         if self.is_connected: # Если уже подключено, то ничего не делаем
             return
         if self._connect_worker is not None and self._connect_worker.isRunning(): # Если поток подключения уже запущен, то ничего не делаем
             return
-        self._connect_worker = _MqttConnectWorker(self._broker_host, self._broker_port, self._topic_messages, self) # Создаем поток подключения
+        self._connect_worker = _MqttConnectWorker(
+            self._broker_host,
+            self._broker_port,
+            self._topic_messages,
+            self._connect_timeout,
+            self,
+        )
         self._connect_worker.succeeded.connect(self._on_connect_succeeded) # Сигнал успешного подключения
         self._connect_worker.failed.connect(self._on_connect_failed) # Сигнал ошибки подключения
         self._connect_worker.finished.connect(self._clear_connect_worker) # Сигнал завершения подключения
@@ -86,15 +116,15 @@ class MqttTransport(BaseTransport):
     """Отправка данных"""
     def send(self, data: bytes) -> None:
         if not self.is_connected or self._client is None: # Если нет активного MQTT-соединения, то вызываем сигнал ошибки
-            self.error.emit("Нет активного MQTT-соединения")
+            self.error.emit(diag_msg.transport_not_connected("MqttTransport"))
             return
         try: # Пытаемся отправить данные
             result = self._client.publish(self._topic_command, payload=data)
             if result.rc != 0: # Если ошибка, то вызываем сигнал ошибки
-                self.error.emit(f"Ошибка публикации MQTT: {result.rc}")
+                self.error.emit(diag_msg.transport_mqtt_publish_failed(result.rc))
                 self.disconnect() # Отключаемся
         except Exception as exc: # Если ошибка, то вызываем сигнал ошибки
-            self.error.emit(str(exc))
+            self.error.emit(diag_msg.transport_io_error("MqttTransport", str(exc)))
             self.disconnect() # Отключаемся
 
     """Обработка успешного подключения"""
@@ -107,13 +137,30 @@ class MqttTransport(BaseTransport):
 
     """Обработка ошибки подключения"""
     def _on_connect_failed(self, message: str) -> None:
-        self.error.emit(message) # Сигнал ошибки
+        self.error.emit(
+            diag_msg.transport_tcp_connect_error(
+                channel="MQTT",
+                host=self._broker_host,
+                port=self._broker_port,
+                raw_detail=message,
+                timeout_seconds=self._connect_timeout,
+            ),
+        )
 
-    """Обработка сообщений"""
+    @Slot(bytes)
+    def _deliver_mqtt_payload(self, payload: bytes) -> None:
+        self.data_received.emit(payload)
+
+    """Обработка сообщений (callback paho — передача в поток Qt)"""
     def _on_message(self, client: Any, userdata: Any, message: Any) -> None:
-        payload = message.payload # Получаем payload сообщения
-        if isinstance(payload, bytes) and payload: # Если payload является байтами и не пустым, то вызываем сигнал приема данных
-            self.data_received.emit(payload)
+        payload = message.payload
+        if isinstance(payload, bytes) and payload:
+            QMetaObject.invokeMethod(
+                self,
+                "_deliver_mqtt_payload",
+                Qt.ConnectionType.QueuedConnection,
+                Q_ARG(bytes, payload),
+            )
 
     """Обработка отключения"""
     def _on_disconnect(self, client: Any, userdata: Any, disconnect_flags: Any, reason_code: Any, properties: Any = None) -> None:

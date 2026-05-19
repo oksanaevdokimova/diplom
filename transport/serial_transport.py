@@ -3,6 +3,7 @@
 from __future__ import annotations # Чтобы можно было писать аннотации вроде dict[str, Any] без кавычек
 from typing import Any # Универсальный тип для значений в словаре конфигурации
 from PySide6.QtCore import QMutexLocker, QThread, Signal # Мьютекс для синхронизации доступа к данным, поток, сигналы
+from core import diagnostic_messages as diag_msg
 from transport.base import BaseTransport
 try: # Пытаемся импортировать модуль pyserial
     import serial
@@ -23,7 +24,7 @@ class _SerialConnectWorker(QThread):
     """Запуск потока"""
     def run(self) -> None:
         if serial is None: # Если модуль pyserial не установлен, то вызываем сигнал ошибки подключения
-            self.failed.emit("Модуль pyserial не установлен")
+            self.failed.emit(diag_msg.transport_module_missing("pyserial", "SerialTransport"))
             return
         try: # Пытаемся подключиться к порту
             handle = serial.Serial(
@@ -32,7 +33,7 @@ class _SerialConnectWorker(QThread):
                 timeout=1.0,
             )
         except serial.SerialException as exc: # Если ошибка, то вызываем сигнал ошибки подключения
-            self.failed.emit(str(exc))
+            self.failed.emit(diag_msg.transport_io_error("SerialTransport", str(exc)))
             return
         self.succeeded.emit(handle) # Сигнал успешного подключения
 
@@ -82,7 +83,7 @@ class SerialTransport(BaseTransport):
     """Подключение к порту"""
     def connect(self) -> None:
         if serial is None: # Если модуль pyserial не установлен, то вызываем сигнал ошибки подключения
-            self.error.emit("Модуль pyserial не установлен")
+            self.error.emit(diag_msg.transport_module_missing("pyserial", "SerialTransport"))
             return
         if self.is_connected: # Если уже подключено, то ничего не делаем
             return
@@ -106,14 +107,14 @@ class SerialTransport(BaseTransport):
     """Отправка данных"""
     def send(self, data: bytes) -> None:
         if not self.is_connected or self._serial is None: # Если нет активного COM-соединения, то вызываем сигнал ошибки
-            self.error.emit("Нет активного COM-соединения")
+            self.error.emit(diag_msg.transport_not_connected("SerialTransport"))
             return
         try: # Пытаемся отправить данные
             with QMutexLocker(self._mutex):
                 self._serial.write(data) # Отправляем данные
                 self._serial.flush() # Очищаем буфер
         except Exception as exc: # Если ошибка, то вызываем сигнал ошибки
-            self.error.emit(str(exc)) # Сигнал ошибки
+            self.error.emit(diag_msg.transport_io_error("SerialTransport", str(exc)))
             self.disconnect() # Отключаемся
 
     """Обработка успешного подключения"""

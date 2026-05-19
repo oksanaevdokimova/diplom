@@ -58,10 +58,6 @@ def extract_controller_actuators(message: AppMessage) -> list[Any]:
         raise ValueError("В actuators_list обязателен массив actuators")
     return items # Возвращение списка механизмов
 
-"""Преобразование списка механизмов в payload"""
-def entries_to_actuators_payload(entries: list[ActuatorEntry]) -> list[dict[str, Any]]:
-    return [entry.to_dict() for entry in entries] # Возвращение списка механизмов
-
 """Преобразование элемента списка механизмов в имя"""
 def _name_from_item(item: Any, index: int) -> str:
     if isinstance(item, str): # Если элемент списка механизмов является строкой, то проверяем на пустоту

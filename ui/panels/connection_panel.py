@@ -58,6 +58,9 @@ class FieldGroup(QWidget):
 class ConnectionPanel(QFrame):
     config_saved = Signal(dict)
     connection_changed = Signal(bool)
+    connect_requested = Signal(dict)
+    connect_fields_invalid = Signal(list)
+    disconnect_requested = Signal()
     PANEL_HEIGHT = 120
     _DYNAMIC_FIELD_ATTRS = ( # Список атрибутов динамических полей
         "usb_port_edit",
@@ -140,7 +143,7 @@ class ConnectionPanel(QFrame):
         header_container.addLayout(header_actions_container)
         """Добавление контейнера заголовка в тело панели"""
         main_layout.addLayout(header_container)
-        self._set_disconnected_status()
+        self.show_disconnected()
 
         """Тело панели"""
         main_layout.addStretch(1) # Пустое место от заголовка (чтоб центрировать в оставшемся пространстве)
@@ -189,7 +192,7 @@ class ConnectionPanel(QFrame):
                     self.transport_combo.setCurrentIndex(index) # Установка выбранного значения
                     break
         finally:
-            self.transport_combo.blockSignals(False) # Разблокировка сигналов выпадающего списка
+            self.transport_combo.blockSignals(False)
 
     """Удаление атрибутов динамических полей"""
     def _drop_dynamic_field_attrs(self) -> None:
@@ -264,13 +267,13 @@ class ConnectionPanel(QFrame):
                 "Порт:",
                 "usb_port",
                 str(usb.get("port", "")),
-                80,
+                110,
             )
             self.usb_baudrate_edit = self._add_labeled_field(
                 "Скорость:",
                 "usb_baudrate",
                 str(usb.get("baudrate", "")),
-                100,
+                110,
             )
         elif transport == "wifi":
             wifi = self._config.get("wifi", {})
@@ -278,13 +281,13 @@ class ConnectionPanel(QFrame):
                 "Хост:",
                 "wifi_host",
                 str(wifi.get("host", "")),
-                100,
+                130,
             )
             self.wifi_port_edit = self._add_labeled_field(
                 "Порт:",
                 "wifi_port",
                 str(wifi.get("port", "")),
-                100,
+                110,
             )
         elif transport == "gsm":
             gsm = self._config.get("gsm", {})
@@ -304,27 +307,27 @@ class ConnectionPanel(QFrame):
                     "Хост:",
                     "gsm_host",
                     str(gsm.get("host", "")),
-                    100,
+                    130,
                 )
 
                 self.gsm_port_edit = self._add_labeled_field(
                     "Порт:",
                     "gsm_port",
                     str(gsm.get("port", "")),
-                    100,
+                    110,
                 )
             else:
                 self.gsm_broker_host_edit = self._add_labeled_field(
                     "Брокер:",
                     "gsm_broker_host",
                     str(gsm.get("broker_host", "")),
-                    200,
+                    190,
                 )
                 self.gsm_broker_port_edit = self._add_labeled_field(
                     "Порт:",
                     "gsm_broker_port",
                     str(gsm.get("broker_port", "")),
-                    100,
+                    110,
                 )
                 self.gsm_topic_command_edit = self._add_labeled_field(
                     "Топик команд:",
@@ -353,7 +356,7 @@ class ConnectionPanel(QFrame):
     def _collect_config_from_fields(self) -> dict[str, Any]:
         new_config = deepcopy(self._config) # Копирование конфигурации
         transport = self._current_transport()
-        new_config["active_transport"] = transport # Установка выбранного канала связи
+        new_config["active_transport"] = transport
         if transport == "usb":
             new_config["usb"] = { # Установка значений для канала связи USB
                 "port": self.usb_port_edit.text().strip(), # Установка порта
@@ -452,30 +455,77 @@ class ConnectionPanel(QFrame):
                 )
         return ok
 
+    def _visible_field_issues(self) -> list[str]:
+        """Список ошибок видимых полей без изменения подсветки."""
+        issues: list[str] = []
+        transport = self._current_transport()
+        if transport == "usb":
+            if not self.usb_port_edit.text().strip():
+                issues.append("COM-порт: порт не должен быть пустым")
+            text = self.usb_baudrate_edit.text().strip()
+            if not text.isdigit() or int(text) <= 0:
+                issues.append("Скорость: целое положительное число")
+        elif transport == "wifi":
+            if not self.wifi_host_edit.text().strip():
+                issues.append("Хост: не должен быть пустым")
+            text = self.wifi_port_edit.text().strip()
+            if not text.isdigit() or int(text) <= 0:
+                issues.append("Порт: целое положительное число")
+        elif transport == "gsm":
+            mode = self._current_gsm_mode()
+            if mode == "tcp":
+                if not self.gsm_host_edit.text().strip():
+                    issues.append("Хост: не должен быть пустым")
+                text = self.gsm_port_edit.text().strip()
+                if not text.isdigit() or int(text) <= 0:
+                    issues.append("Порт: целое положительное число")
+            else:
+                if not self.gsm_broker_host_edit.text().strip():
+                    issues.append("Брокер: не должен быть пустым")
+                text = self.gsm_broker_port_edit.text().strip()
+                if not text.isdigit() or int(text) <= 0:
+                    issues.append("Порт брокера: целое положительное число")
+                if not self.gsm_topic_command_edit.text().strip():
+                    issues.append("Топик команд: не должен быть пустым")
+                if not self.gsm_topic_messages_edit.text().strip():
+                    issues.append("Топик сообщений: не должен быть пустым")
+        return issues
+
     """Обработка нажатия кнопки «Подключить»"""
     def _on_connect_clicked(self) -> None:
         self._clear_field_errors()
-        if not self._validate_visible_fields(): # Если есть ошибки, устанавливаем статус «Отключено»
-            self._set_disconnected_status()
+        issues = self._visible_field_issues()
+        if issues:
+            self._validate_visible_fields()
+            self.connect_fields_invalid.emit(issues)
+            self.show_disconnected()
             return
-        try: # Попытка собрать конфигурацию из полей панели
-            new_config = self._collect_config_from_fields() # Сборка конфигурации из полей панели
-            validate_config(new_config) # Проверка конфигурации
-        except ValueError: # Если есть ошибки, устанавливаем статус «Отключено»
-            self._set_disconnected_status()
+        if not self._validate_visible_fields():
+            self.show_disconnected()
             return
-        connected = True # Установка статуса «Подключено»
-        if not connected: # Если нет соединения, устанавливаем статус «Отключено»   
-            self._set_disconnected_status()
+        try:
+            new_config = self._collect_config_from_fields()
+            validate_config(new_config)
+        except ValueError as exc:
+            self.connect_fields_invalid.emit([str(exc)])
+            self.show_disconnected()
             return
-        self._config = new_config # Установка конфигурации
-        save_config(self._config) # Сохранение конфигурации
-        self.config_saved.emit(deepcopy(self._config)) # Сигнал о сохранении конфигурации
-        self._set_connected_status() # Установка статуса «Подключено»
+        self._config = new_config
+        save_config(self._config)
+        self.config_saved.emit(deepcopy(self._config))
+        self.show_connecting()
+        self.connect_requested.emit(deepcopy(self._config))
 
     """Обработка нажатия кнопки «Отключить»"""
     def _on_disconnect_clicked(self) -> None:
-        self._set_disconnected_status() # Установка статуса «Отключено»
+        self.disconnect_requested.emit()
+
+    def show_connecting(self) -> None:
+        self.status_label.setText("Подключение...")
+        self._apply_status_dot_style("statusDotDisconnected")
+        self._apply_status_frame_style(connected=False)
+        self.connect_button.setEnabled(False)
+        self.disconnect_button.setEnabled(False)
 
     """Показывает ошибку над полем"""
     def _show_error(self, field: QLineEdit, message: str) -> None:
@@ -505,7 +555,7 @@ class ConnectionPanel(QFrame):
             self._clear_error(field) # Очистка ошибки под полем
 
     """Установка статуса «Подключено»"""
-    def _set_connected_status(self) -> None:
+    def show_connected(self) -> None:
         self.status_label.setText("Подключено") # Установка текста статуса «Подключено»
         self._apply_status_dot_style("statusDotConnected") # Применение стиля для точки статуса
         self._apply_status_frame_style(connected=True) # Применение стиля для рамки статуса
@@ -514,7 +564,7 @@ class ConnectionPanel(QFrame):
         self.connection_changed.emit(True) # Сигнал о том, что соединение установлено
 
     """Установка статуса «Отключено»"""
-    def _set_disconnected_status(self) -> None:
+    def show_disconnected(self) -> None:
         self.status_label.setText("Отключено") # Установка текста статуса «Отключено»
         self._apply_status_dot_style("statusDotDisconnected") # Применение стиля для точки статуса
         self._apply_status_frame_style(connected=False) # Применение стиля для рамки статуса

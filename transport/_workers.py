@@ -11,17 +11,25 @@ class TcpConnectWorker(QThread):
     failed = Signal(str) # Сигнал ошибки подключения
 
     """Подключение к серверу"""
-    def __init__(self, host: str, port: int, parent: Any = None) -> None:
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        connect_timeout: float = 60.0,
+        parent: Any = None,
+    ) -> None:
         super().__init__(parent) # Вызов конструктора родительского класса
         self._host = host
         self._port = port
+        self._connect_timeout = max(1.0, float(connect_timeout))
 
     """Запуск потока"""
     def run(self) -> None:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Создаем сокет
         try:
+            sock.settimeout(self._connect_timeout)
             sock.connect((self._host, self._port)) # Подключаемся к серверу
-            sock.settimeout(1.0) # Устанавливаем таймаут
+            sock.settimeout(1.0) # Таймаут чтения в фоновом потоке
             self.succeeded.emit(sock) # Сигнал успешного подключения
         except OSError as exc: # Если ошибка, то вызываем сигнал ошибки подключения
             sock.close() # Закрываем сокет
